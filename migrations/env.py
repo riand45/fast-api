@@ -21,7 +21,7 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from db.models import Book
+from db.models import Book, User
 from sqlmodel import SQLModel
 target_metadata = SQLModel.metadata
 
