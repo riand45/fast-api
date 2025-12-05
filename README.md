@@ -1,6 +1,6 @@
 # FastAPI CRUD Application
 
-A RESTful API for managing books using FastAPI, SQLModel, and PostgreSQL with async support.
+A RESTful API for managing books and user authentication using FastAPI, SQLModel, and PostgreSQL with async support.
 
 ## 📋 Table of Contents
 
@@ -19,6 +19,8 @@ A RESTful API for managing books using FastAPI, SQLModel, and PostgreSQL with as
 ## ✨ Features
 
 - ✅ Full CRUD operations for Books
+- ✅ User authentication and registration
+- ✅ Password hashing with bcrypt
 - ✅ Async/await support with asyncio
 - ✅ PostgreSQL database with asyncpg driver
 - ✅ SQLModel ORM for database operations
@@ -36,6 +38,8 @@ A RESTful API for managing books using FastAPI, SQLModel, and PostgreSQL with as
 - **Alembic** (1.17.2) - Database migration tool
 - **Pydantic** (2.12.5) - Data validation using Python type hints
 - **Uvicorn** (0.38.0) - ASGI server
+- **passlib** (1.7.4) - Password hashing library
+- **bcrypt** (4.0.1) - Password hashing algorithm (Note: Using 4.0.1 for compatibility with passlib)
 
 ## 📁 Project Structure
 
@@ -44,6 +48,12 @@ crud/
 ├── src/
 │   ├── __init__.py           # FastAPI app initialization
 │   ├── config.py             # Configuration settings
+│   ├── auth/
+│   │   ├── __init__.py
+│   │   ├── routes.py         # Auth API endpoints
+│   │   ├── service.py        # User business logic
+│   │   ├── schemas.py        # Pydantic models for users
+│   │   └── utils.py          # Password hashing utilities
 │   ├── books/
 │   │   ├── __init__.py
 │   │   ├── routes.py         # Book API endpoints
@@ -58,6 +68,7 @@ crud/
 ├── alembic.ini              # Alembic configuration
 ├── .env                     # Environment variables
 ├── .gitignore
+├── requirements.txt
 └── README.md
 ```
 
@@ -105,13 +116,17 @@ pip install fastapi==0.122.0 \
             alembic==1.17.2 \
             pydantic==2.12.5 \
             pydantic-settings==2.12.0 \
-            uvicorn==0.38.0
+            uvicorn==0.38.0 \
+            passlib==1.7.4 \
+            'bcrypt<4.1.0'
 ```
 
 Or create a `requirements.txt` file with the above packages and run:
 ```bash
 pip install -r requirements.txt
 ```
+
+> **Important:** We use `bcrypt<4.1.0` (specifically 4.0.1) for compatibility with `passlib 1.7.4`. Bcrypt 5.x has breaking changes that cause issues with passlib's password hashing.
 
 ## ⚙️ Configuration
 
@@ -158,6 +173,18 @@ alembic upgrade head
 
 This will create the following table structure:
 
+**Users Table:**
+- `uid` (UUID, Primary Key)
+- `username` (String)
+- `email` (String)
+- `first_name` (String)
+- `last_name` (String)
+- `role` (String, default: "user")
+- `is_verified` (Boolean, default: false)
+- `password_hash` (String, excluded from responses)
+- `created_at` (Timestamp)
+- `update_at` (Timestamp)
+
 **Books Table:**
 - `uid` (UUID, Primary Key)
 - `title` (String, 100 chars)
@@ -168,6 +195,7 @@ This will create the following table structure:
 - `language` (String, 50 chars)
 - `created_at` (DateTime, auto-generated)
 - `updated_at` (DateTime, auto-generated)
+- `user_uid` (UUID, Foreign Key to Users)
 
 ## ▶️ Running the Application
 
@@ -186,7 +214,49 @@ The API will be available at: **http://127.0.0.1:8000**
 
 ## 📡 API Endpoints
 
-### Base URL
+### Authentication Endpoints
+
+#### Base URL
+```
+http://127.0.0.1:8000/api/v1/auth
+```
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/auth/signup` | Register a new user |
+
+#### Example: User Signup (POST)
+
+```bash
+curl --location 'http://localhost:8000/api/v1/auth/signup' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data-raw '{
+    "email": "johndoe@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "password": "SecurePassword123",
+    "username": "johndoe"
+  }'
+```
+
+**Response:**
+```json
+{
+  "uid": "ca190f09-a07d-488b-8ae1-e3d0c2c497f2",
+  "username": "johndoe",
+  "email": "johndoe@example.com",
+  "first_name": "John",
+  "last_name": "Doe",
+  "is_verified": false,
+  "created_at": "2025-12-05T15:56:41.410982",
+  "update_at": "2025-12-05T15:56:41.410986"
+}
+```
+
+### Books Endpoints
+
+#### Base URL
 ```
 http://127.0.0.1:8000/api/v1/books
 ```
