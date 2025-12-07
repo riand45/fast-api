@@ -20,6 +20,8 @@ A RESTful API for managing books and user authentication using FastAPI, SQLModel
 
 - ✅ Full CRUD operations for Books
 - ✅ User authentication and registration
+- ✅ JWT-based authentication (access & refresh tokens)
+- ✅ User login endpoint
 - ✅ Password hashing with bcrypt
 - ✅ Async/await support with asyncio
 - ✅ PostgreSQL database with asyncpg driver
@@ -40,6 +42,8 @@ A RESTful API for managing books and user authentication using FastAPI, SQLModel
 - **Uvicorn** (0.38.0) - ASGI server
 - **passlib** (1.7.4) - Password hashing library
 - **bcrypt** (4.0.1) - Password hashing algorithm (Note: Using 4.0.1 for compatibility with passlib)
+- **PyJWT** (2.10.1) - JSON Web Token implementation
+- **python-itsdangerous** (2.2.0) - Secure token generation
 
 ## 📁 Project Structure
 
@@ -118,7 +122,9 @@ pip install fastapi==0.122.0 \
             pydantic-settings==2.12.0 \
             uvicorn==0.38.0 \
             passlib==1.7.4 \
-            'bcrypt<4.1.0'
+            'bcrypt<4.1.0' \
+            PyJWT==2.10.1 \
+            python-itsdangerous==2.2.0
 ```
 
 Or create a `requirements.txt` file with the above packages and run:
@@ -136,18 +142,23 @@ pip install -r requirements.txt
 touch .env
 ```
 
-### 2. Add your database configuration
+### 2. Add your database configuration and JWT settings
 
 ```env
 DATABASE_URL=postgresql://username:password@localhost:5432/your_database_name
+JWT_SECRET_KEY=your-secret-key-here
+JWT_ALGORITHM=HS256
 ```
 
 **Example:**
 ```env
 DATABASE_URL=postgresql://postgres:password@localhost:5432/bookstore_db
+JWT_SECRET_KEY=my-super-secret-jwt-key-change-this-in-production
+JWT_ALGORITHM=HS256
 ```
 
 > **Note:** Replace `username`, `password`, and `your_database_name` with your actual PostgreSQL credentials.
+> **Security:** Generate a strong, random secret key for production. Never commit your `.env` file to version control.
 
 ## 🗄️ Database Setup
 
@@ -224,6 +235,7 @@ http://127.0.0.1:8000/api/v1/auth
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/api/v1/auth/signup` | Register a new user |
+| `POST` | `/api/v1/auth/login` | Login and receive JWT tokens |
 
 #### Example: User Signup (POST)
 
@@ -251,6 +263,42 @@ curl --location 'http://localhost:8000/api/v1/auth/signup' \
   "is_verified": false,
   "created_at": "2025-12-05T15:56:41.410982",
   "update_at": "2025-12-05T15:56:41.410986"
+}
+```
+
+#### Example: User Login (POST)
+
+```bash
+curl --location 'http://localhost:8000/api/v1/auth/login' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data-raw '{
+    "email": "johndoe@example.com",
+    "password": "SecurePassword123"
+  }'
+```
+
+**Response:**
+```json
+{
+  "message": "Login successful",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "email": "johndoe@example.com",
+    "user_uid": "ca190f09-a07d-488b-8ae1-e3d0c2c497f2"
+  }
+}
+```
+
+**Token Information:**
+- **Access Token:** Valid for 3600 seconds (1 hour) - Use for authenticating API requests
+- **Refresh Token:** Valid for 2 days - Use to obtain new access tokens without re-login
+
+**Error Response (Invalid Credentials):**
+```json
+{
+  "detail": "Invalid Email or Password"
 }
 ```
 
@@ -389,6 +437,8 @@ gunicorn src:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 | Variable | Description | Required | Example |
 |----------|-------------|----------|---------|
 | `DATABASE_URL` | PostgreSQL connection string | Yes | `postgresql://user:pass@localhost:5432/db` |
+| `JWT_SECRET_KEY` | Secret key for JWT token signing | Yes | `my-super-secret-jwt-key` |
+| `JWT_ALGORITHM` | Algorithm for JWT encoding | Yes | `HS256` |
 
 ## 📝 License
 
