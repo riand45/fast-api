@@ -169,7 +169,7 @@ JWT_ALGORITHM=HS256
 psql -U postgres
 
 # Create database
-CREATE DATABASE bookstore_db;
+CREATE DATABASE example-db;
 
 # Exit psql
 \q
