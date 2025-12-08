@@ -304,6 +304,9 @@ curl --location 'http://localhost:8000/api/v1/auth/login' \
 
 ### Books Endpoints
 
+> [!IMPORTANT]
+> **All book endpoints require authentication!** You must include a valid bearer access token in the `Authorization` header for all requests.
+
 #### Base URL
 ```
 http://127.0.0.1:8000/api/v1/books
@@ -311,13 +314,25 @@ http://127.0.0.1:8000/api/v1/books
 
 ### Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/books/` | Get all books |
-| `POST` | `/api/v1/books/` | Create a new book |
-| `GET` | `/api/v1/books/{book_id}` | Get a book by ID (UUID) |
-| `PATCH` | `/api/v1/books/{book_id}` | Update a book by ID |
-| `DELETE` | `/api/v1/books/{book_id}` | Delete a book by ID |
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/api/v1/books/` | Get all books | ✅ Yes |
+| `POST` | `/api/v1/books/` | Create a new book | ✅ Yes |
+| `GET` | `/api/v1/books/{book_id}` | Get a book by ID (UUID) | ✅ Yes |
+| `PATCH` | `/api/v1/books/{book_id}` | Update a book by ID | ✅ Yes |
+| `DELETE` | `/api/v1/books/{book_id}` | Delete a book by ID | ✅ Yes |
+
+### Authentication
+
+All book endpoints require a valid JWT access token. To authenticate:
+
+1. **Login** using the `/api/v1/auth/login` endpoint to get an access token
+2. **Include the token** in the `Authorization` header with the format: `Bearer <your_access_token>`
+
+**Example Authorization Header:**
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
 
 ### Example Requests
 
@@ -326,6 +341,7 @@ http://127.0.0.1:8000/api/v1/books
 ```bash
 curl -X POST "http://127.0.0.1:8000/api/v1/books/" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
   -d '{
     "title": "The Great Gatsby",
     "author": "F. Scott Fitzgerald",
@@ -336,16 +352,34 @@ curl -X POST "http://127.0.0.1:8000/api/v1/books/" \
   }'
 ```
 
+**Response:**
+```json
+{
+  "uid": "123e4567-e89b-12d3-a456-426614174000",
+  "title": "The Great Gatsby",
+  "author": "F. Scott Fitzgerald",
+  "publisher": "Scribner",
+  "published_date": "1925-04-10T00:00:00",
+  "page_count": 180,
+  "language": "English",
+  "created_at": "2025-12-08T11:17:41.410982",
+  "updated_at": "2025-12-08T11:17:41.410986",
+  "user_uid": "ca190f09-a07d-488b-8ae1-e3d0c2c497f2"
+}
+```
+
 #### Get All Books (GET)
 
 ```bash
-curl -X GET "http://127.0.0.1:8000/api/v1/books/"
+curl -X GET "http://127.0.0.1:8000/api/v1/books/" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 #### Get a Book by ID (GET)
 
 ```bash
-curl -X GET "http://127.0.0.1:8000/api/v1/books/{book_uuid}"
+curl -X GET "http://127.0.0.1:8000/api/v1/books/{book_uuid}" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 #### Update a Book (PATCH)
@@ -353,6 +387,7 @@ curl -X GET "http://127.0.0.1:8000/api/v1/books/{book_uuid}"
 ```bash
 curl -X PATCH "http://127.0.0.1:8000/api/v1/books/{book_uuid}" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
   -d '{
     "title": "Updated Title",
     "author": "Updated Author",
@@ -365,7 +400,15 @@ curl -X PATCH "http://127.0.0.1:8000/api/v1/books/{book_uuid}" \
 #### Delete a Book (DELETE)
 
 ```bash
-curl -X DELETE "http://127.0.0.1:8000/api/v1/books/{book_uuid}"
+curl -X DELETE "http://127.0.0.1:8000/api/v1/books/{book_uuid}" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Error Response (Missing or Invalid Token):**
+```json
+{
+  "detail": "Token is invalid Or expired"
+}
 ```
 
 ## 🔄 Database Migrations
