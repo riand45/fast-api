@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from src.books.routes import book_router
 from src.auth.routes import auth_router
+from src.error_handlers import register_all_errors
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
@@ -17,6 +18,9 @@ app = FastAPI(
     version=version,
     lifespan=life_span,
 )
+
+# Register error handlers
+register_all_errors(app)
 
 app.include_router(book_router, prefix=f"/api/{version}/books", tags=["books"])
 app.include_router(auth_router, prefix=f"/api/{version}/auth", tags=["auth"])
